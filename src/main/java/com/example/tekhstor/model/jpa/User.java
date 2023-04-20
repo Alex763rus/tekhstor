@@ -4,12 +4,17 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.sql.Timestamp;
 import java.util.Objects;
 
+@Getter
+@Setter
+@ToString
 @Entity(name = "user_tbl")
-@Data
 public class User {
 
     @Id

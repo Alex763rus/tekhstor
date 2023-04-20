@@ -5,6 +5,7 @@ import com.example.tekhstor.model.jpa.User;
 import com.example.tekhstor.service.database.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -16,6 +17,8 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.List;
 
 
 @Component
@@ -54,27 +57,23 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        User user = null;
-        PartialBotApiMethod answer;
-        if (update.hasMessage()) {
-            user = userService.getUser(update.getMessage());
-        } else if (update.hasCallbackQuery()) {
-            user = userService.getUser(update.getCallbackQuery().getMessage());
-        } else {
+        val user = userService.getUser(update);
+        if (user == null) {
             log.warn("Сообщение не содержит текста и нажатия на кнопку...");
-            return;
         }
-        answer = mainMenuService.messageProcess(user, update);
-        try {
-            if (answer instanceof BotApiMethod) {
-                execute((BotApiMethod) answer);
+        val answers = mainMenuService.messageProcess(user, update);
+        for (val answer : answers) {
+            try {
+                if (answer instanceof BotApiMethod) {
+                    execute((BotApiMethod) answer);
+                }
+//                if (answer instanceof SendDocument) {
+////                deleteLastMessage(update);
+//                    execute((SendDocument) answer);
+//                }
+            } catch (TelegramApiException e) {
+                log.error("Ошибка во время обработки сообщения: " + e.getMessage());
             }
-            if (answer instanceof SendDocument) {
-//                deleteLastMessage(update);
-                execute((SendDocument) answer);
-            }
-        } catch (TelegramApiException e) {
-            log.error("Ошибка во время обработки сообщения: " + e.getMessage());
         }
     }
 //

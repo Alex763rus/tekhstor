@@ -4,9 +4,11 @@ import com.example.tekhstor.model.jpa.User;
 import com.example.tekhstor.model.jpa.UserRepository;
 import com.example.tekhstor.service.StateService;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.sql.Timestamp;
 
@@ -20,13 +22,24 @@ public class UserService {
     @Autowired
     private StateService stateService;
 
-    public User getUser(Message message) {
-        Long chatId = message.getChatId();
+    public User getUser(Update update) {
+        val message = getMessage(update);
+        val chatId = message.getChatId();
         User user = stateService.getUser(chatId);
         if (user == null) {
             user = userRepository.findById(chatId).orElse(registeredUser(message));
         }
         return user;
+    }
+
+    private Message getMessage(Update update) {
+        if (update.hasMessage()) {
+            return update.getMessage();
+        }
+        if (update.hasCallbackQuery()) {
+            return update.getCallbackQuery().getMessage();
+        }
+        return null;
     }
 
     private User registeredUser(Message message) {

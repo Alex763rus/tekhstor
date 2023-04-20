@@ -1,11 +1,17 @@
 package com.example.tekhstor.model.mainMenu;
 
 import com.example.tekhstor.model.jpa.User;
+import com.example.tekhstor.model.wpapper.SendMessageWrap;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -19,9 +25,12 @@ public class MainMenuStart extends MainMenu {
     }
 
     @Override
-    public SendMessage menuRun(User user, Update update) {
-        String answer = EmojiParser.parseToUnicode("Hello, " + user.getFirstName() + "!" + " :blush:");
-        return new SendMessage(user.getChatId().toString(),  answer);
+    public List<PartialBotApiMethod> menuRun(User user, Update update) {
+        return Arrays.asList(
+                SendMessageWrap.init()
+                        .setChatIdLong(user.getChatId())
+                        .setText(EmojiParser.parseToUnicode("Hello, " + user.getFirstName() + "!" + " :blush:"))
+                        .build().createSendMessage());
     }
 
     @Override

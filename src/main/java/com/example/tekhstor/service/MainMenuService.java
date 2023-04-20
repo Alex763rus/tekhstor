@@ -1,11 +1,10 @@
 package com.example.tekhstor.service;
 
 import com.example.tekhstor.model.jpa.User;
-import com.example.tekhstor.model.mainMenu.MainMenuActivity;
-import com.example.tekhstor.model.mainMenu.MainMenuDefault;
-import com.example.tekhstor.model.mainMenu.MainMenuStart;
+import com.example.tekhstor.model.mainMenu.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -23,7 +22,13 @@ public class MainMenuService {
     private MainMenuStart mainMenuStart;
     @Autowired
     private MainMenuDefault mainMenuActivityDefault;
+    @Autowired
+    private MainMenuFolder mainMenuFolder;
 
+    @Autowired
+    private MainMenuContact mainMenuContact;
+    @Autowired
+    private MainMenuFolderMessage mainMenuFolderMessage;
     @Autowired
     private StateService stateService;
     private List<MainMenuActivity> mainMenu;
@@ -32,13 +37,20 @@ public class MainMenuService {
     public void mainMenuInit() {
         mainMenu = new ArrayList();
         mainMenu.add(mainMenuStart);
+        mainMenu.add(mainMenuFolder);
+        mainMenu.add(mainMenuContact);
+        mainMenu.add(mainMenuFolderMessage);
     }
 
-    public PartialBotApiMethod messageProcess(User user, Update update) {
-        MainMenuActivity mainMenuActivity = mainMenu.stream()
-                .filter(e -> update.hasMessage() && e.getMenuName().equals(update.getMessage().getText()))
-                .findFirst().get();
-
+    public List<PartialBotApiMethod> messageProcess(User user, Update update) {
+        MainMenuActivity mainMenuActivity = null;
+        if(update.hasMessage()) {
+            for (val menu : mainMenu) {
+                if (menu.getMenuName().equals(update.getMessage().getText())){
+                    mainMenuActivity = menu;
+                }
+            }
+        }
         if (mainMenuActivity != null) {
             stateService.setMenu(user, mainMenuActivity);
         } else {
@@ -48,8 +60,7 @@ public class MainMenuService {
                 mainMenuActivity = mainMenuActivityDefault;
             }
         }
-        PartialBotApiMethod mainMenuAnswer = mainMenuActivity.menuRun(user, update);
-        return mainMenuAnswer;
+        return mainMenuActivity.menuRun(user, update);
     }
 
     public List<BotCommand> getMainMenuComands() {
