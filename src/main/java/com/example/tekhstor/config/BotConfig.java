@@ -18,4 +18,7 @@ public class BotConfig {
 
     @Value("${bot.token}")
     String botToken;
+
+    @Value("${sim.api.key}")
+    String simApiKey;
 }

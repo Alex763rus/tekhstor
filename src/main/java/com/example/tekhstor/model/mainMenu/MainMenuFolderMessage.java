@@ -1,13 +1,11 @@
 package com.example.tekhstor.model.mainMenu;
 
 import com.example.tekhstor.enums.State;
-import com.example.tekhstor.model.jpa.ContactRepository;
-import com.example.tekhstor.model.jpa.Folder;
-import com.example.tekhstor.model.jpa.FolderRepository;
-import com.example.tekhstor.model.jpa.User;
+import com.example.tekhstor.model.jpa.*;
 import com.example.tekhstor.model.wpapper.DeleteMessageWrap;
 import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
+import com.example.tekhstor.service.RestService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,9 +58,15 @@ public class MainMenuFolderMessage extends MainMenu {
 
     }
 
+    @Autowired
+    private RestService restService;
+
     private List<PartialBotApiMethod> sendMessages(User user, Update update) {
         val contacts = contactRepository.getContactByFolder(folderTmp.get(user));
-        //TODO
+        val message = update.getMessage().getText();
+        for (Contact contact : contacts) {
+            restService.sendPost(contact.getChatId(), message);
+        }
         stateService.setState(user, FREE);
         return Arrays.asList(SendMessageWrap.init()
                 .setChatIdLong(update.getMessage().getChatId())
