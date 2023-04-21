@@ -1,9 +1,17 @@
 package com.example.tekhstor.config;
 
+import com.example.tekhstor.model.WhiteListUser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
+import lombok.SneakyThrows;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+
+import java.io.File;
+import java.io.InputStreamReader;
 
 @Configuration
 @Data
@@ -21,4 +29,14 @@ public class BotConfig {
 
     @Value("${sim.api.key}")
     String simApiKey;
+
+    @SneakyThrows
+    @Bean
+    WhiteListUser whiteListUser(){
+        val currentDir = System.getProperty("user.dir");
+        val filePath = currentDir + "\\" + "WhiteListUsers.json";
+        val objectMapper = new ObjectMapper();
+        val result = objectMapper.readValue(new File(filePath), WhiteListUser.class);
+        return result;
+    }
 }

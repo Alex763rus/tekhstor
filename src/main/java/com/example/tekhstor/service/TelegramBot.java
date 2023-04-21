@@ -2,6 +2,7 @@ package com.example.tekhstor.service;
 
 import com.example.tekhstor.config.BotConfig;
 import com.example.tekhstor.model.jpa.User;
+import com.example.tekhstor.model.wpapper.SendMessageWrap;
 import com.example.tekhstor.service.database.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +60,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         val user = userService.getUser(update);
         if (user == null) {
-            log.warn("Сообщение не содержит текста и нажатия на кнопку...");
+            try {
+                log.warn("Отказано в доступе:" + update.getMessage().getChatId());
+                execute(SendMessageWrap.init()
+                        .setChatIdLong(update.getMessage().getChatId())
+                        .setText("Отказано в доступе")
+                        .build().createSendMessage()
+                );
+                return;
+            } catch (TelegramApiException e) {
+                log.error("Ошибка во время обработки сообщения: " + e.getMessage());
+            }
         }
         val answers = mainMenuService.messageProcess(user, update);
         for (val answer : answers) {
@@ -76,6 +87,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         }
     }
+
 //
 //    private void deleteLastMessage(Update update) throws TelegramApiException {
 //        EditMessageText editMessageText = new EditMessageText();

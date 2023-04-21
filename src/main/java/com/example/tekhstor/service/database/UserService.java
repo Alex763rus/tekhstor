@@ -1,5 +1,6 @@
 package com.example.tekhstor.service.database;
 
+import com.example.tekhstor.model.WhiteListUser;
 import com.example.tekhstor.model.jpa.User;
 import com.example.tekhstor.model.jpa.UserRepository;
 import com.example.tekhstor.service.StateService;
@@ -22,9 +23,15 @@ public class UserService {
     @Autowired
     private StateService stateService;
 
+    @Autowired
+    private WhiteListUser whiteListUser;
+
     public User getUser(Update update) {
         val message = getMessage(update);
         val chatId = message.getChatId();
+        if(!whiteListUser.getWhiteListChatsID().contains(chatId)){
+            return null;
+        }
         User user = stateService.getUser(chatId);
         if (user == null) {
             user = userRepository.findById(chatId).orElse(registeredUser(message));

@@ -19,6 +19,12 @@ public class Contact {
     @Column(name = "chat_id")
     private String chatId;
 
+    @Column(name = "username")
+    private String username;
+
+    @Column(name = "title")
+    private String title;
+
     @ManyToOne(optional = false, cascade = CascadeType.REFRESH)
     @JoinColumn(name = "folderId")
     private Folder folder;

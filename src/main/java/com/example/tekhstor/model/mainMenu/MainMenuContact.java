@@ -1,23 +1,22 @@
 package com.example.tekhstor.model.mainMenu;
 
 import com.example.tekhstor.enums.State;
-import com.example.tekhstor.model.comparator.ContactComparator;
 import com.example.tekhstor.model.jpa.*;
 import com.example.tekhstor.model.wpapper.DeleteMessageWrap;
 import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
+import com.example.tekhstor.service.RestService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.example.tekhstor.constant.Constant.NEW_LINE;
-import static com.example.tekhstor.constant.Constant.SPACE;
 import static com.example.tekhstor.enums.State.*;
 
 @Component
@@ -30,6 +29,8 @@ public class MainMenuContact extends MainMenu {
     @Autowired
     private FolderRepository folderRepository;
 
+    @Autowired
+    private RestService restService;
     private Map<User, Folder> folderTmp = new HashMap();
 
     @Override
@@ -51,8 +52,8 @@ public class MainMenuContact extends MainMenu {
                 return contactMain(user, update);
             case CONTACT_ADD_WAIT_FOLDER:
                 return waitFolderNameLogic(user, update);
-            case CONTACT_ADD_WAIT_CHAT_ID:
-                return waitChatIdLogic(user, update);
+            case CONTACT_ADD_WAIT_USER_NAME:
+                return waitUserNameLogic(user, update);
         }
         return errorMessageDefault(update);
     }
@@ -89,18 +90,27 @@ public class MainMenuContact extends MainMenu {
     private final String CONTACT_ADD_TEXT = "Режим добавления нового контакта.\nВыберите папку";
     private final String CONTACT_ADD_OK_SAVE = "Новый контакт успешно сохранен";
 
-    private List<PartialBotApiMethod> waitChatIdLogic(User user, Update update) {
+    private List<PartialBotApiMethod> waitUserNameLogic(User user, Update update) {
         val messageText = update.getMessage().getText();
-        try {
-            Long.parseLong(messageText);
-        } catch (Exception ex) {
-            val message = "Ошибка! Некорректный Chat_id контакта:" + messageText + "\nВведите chat_id контакта:";
+        if (!messageText.contains("@")) {
+            val message = "Ошибка! Некорректный userName контакта:" + messageText + ".\nОтсутствует \"@\"\nВведите username контакта:";
             log.error(message);
             return errorMessage(update, message);
         }
         val contact = new Contact();
-        contact.setChatId(update.getMessage().getText());
+        contact.setUsername(update.getMessage().getText());
         contact.setFolder(folderTmp.get(user));
+        val jsonData = restService.getChatInfo(messageText);
+
+        try {
+            JSONObject jsonObject = new JSONObject(jsonData);
+            contact.setTitle(jsonObject.getString("title"));
+            contact.setChatId(String.valueOf(jsonObject.getLong("id")));
+        } catch (Exception ex) {
+            val message = "Ошибка! Некорректный userName контакта.\nВведите username контакта:";
+            log.error(message);
+            return errorMessage(update, message);
+        }
         contactRepository.save(contact);
         folderTmp.remove(user);
         stateService.setState(user, State.FREE);
@@ -115,12 +125,12 @@ public class MainMenuContact extends MainMenu {
         if (!update.hasCallbackQuery()) {
             return errorMessageDefault(update);
         }
-        stateService.setState(user, State.CONTACT_ADD_WAIT_CHAT_ID);
+        stateService.setState(user, State.CONTACT_ADD_WAIT_USER_NAME);
         folderTmp.put(user, folderRepository.findById(Long.parseLong(update.getCallbackQuery().getData())).get());
         return Arrays.asList(EditMessageTextWrap.init()
                 .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
                 .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
-                .setText("Введите chat_id контакта:")
+                .setText("Введите username контакта:")
                 .build().createEditMessageText());
     }
 
@@ -153,9 +163,14 @@ public class MainMenuContact extends MainMenu {
         // contactList.stream().flatMap(e -> )
         //.sorted(Comparator.comparing(msg -> msg.getId()))
         for (int i = 0; i < contactList.size(); ++i) {
+            val contact = contactList.get(i);
             messageText.append(i + 1).append(") ")
-                    .append(contactList.get(i).getFolder().getName()).append(" : ")
-                    .append(contactList.get(i).getChatId()).append(NEW_LINE);
+                    .append(contact.getFolder().getName())
+                    .append(" : ").append(contact.getChatId())
+                    .append(" - ").append(contact.getUsername())
+                    .append(" - ").append(contact.getTitle())
+                    .append(NEW_LINE)
+            ;
         }
         stateService.setState(user, State.FREE);
         return Arrays.asList(

@@ -1,8 +1,6 @@
 package com.example.tekhstor.model.mainMenu;
 
-import com.example.tekhstor.enums.State;
 import com.example.tekhstor.model.jpa.*;
-import com.example.tekhstor.model.wpapper.DeleteMessageWrap;
 import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
 import com.example.tekhstor.service.RestService;
@@ -32,6 +30,9 @@ public class MainMenuFolderMessage extends MainMenu {
     @Autowired
     private ContactRepository contactRepository;
 
+    @Autowired
+    private RestService restService;
+
     private Map<User, Folder> folderTmp = new HashMap();
 
     @Override
@@ -58,14 +59,11 @@ public class MainMenuFolderMessage extends MainMenu {
 
     }
 
-    @Autowired
-    private RestService restService;
-
     private List<PartialBotApiMethod> sendMessages(User user, Update update) {
         val contacts = contactRepository.getContactByFolder(folderTmp.get(user));
         val message = update.getMessage().getText();
         for (Contact contact : contacts) {
-            restService.sendPost(contact.getChatId(), message);
+            restService.sendMessage(contact.getChatId(), message);
         }
         stateService.setState(user, FREE);
         return Arrays.asList(SendMessageWrap.init()
