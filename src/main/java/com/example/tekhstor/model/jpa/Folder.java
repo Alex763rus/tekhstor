@@ -21,6 +21,9 @@ public class Folder {
     @Column(name = "name")
     private String name;
 
+    @Column(name = "is_delete")
+    private Boolean isDelete;
+
     @OneToMany(mappedBy="contactId", fetch= FetchType.EAGER)
     private List<Contact> contactList;
 }

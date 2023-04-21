@@ -4,6 +4,7 @@ import com.example.tekhstor.api.SearchPublicChats;
 import com.example.tekhstor.api.SendTgMessage;
 import com.example.tekhstor.api.Text;
 import com.example.tekhstor.config.BotConfig;
+import com.example.tekhstor.model.WhiteListUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +19,6 @@ import org.springframework.web.client.RestTemplate;
 public class RestService {
 
     private final String URL = "https://api.tdlib.org/client";
-    @Autowired
-    BotConfig botConfig;
 
     @Autowired
     SendTgMessage sendTgMessage;
@@ -30,19 +29,15 @@ public class RestService {
     @Autowired
     SearchPublicChats searchPublicChats;
 
-    @PostConstruct
-    public void init() {
-        sendTgMessage.setApi_key(botConfig.getSimApiKey());
-        searchPublicChats.setApi_key(botConfig.getSimApiKey());
-    }
-
-    public String getChatInfo(String userName) {
+    public String getChatInfo(String apiKey,String userName) {
         searchPublicChats.setUsername(userName);
+        searchPublicChats.setApi_key(apiKey);
         return sendPostRequest(searchPublicChats);
     }
 
-    public String sendMessage(String chatId, String message) {
+    public String sendMessage(String apiKey, String chatId, String message) {
         sendTgMessage.setChat_id(chatId);
+        sendTgMessage.setApi_key(apiKey);
         text.setText(message);
         return sendPostRequest(sendTgMessage);
     }

@@ -60,10 +60,10 @@ public class MainMenuFolderMessage extends MainMenu {
     }
 
     private List<PartialBotApiMethod> sendMessages(User user, Update update) {
-        val contacts = contactRepository.getContactByFolder(folderTmp.get(user));
+        val contacts = contactRepository.getContatsByFolderAndIsDelete(folderTmp.get(user), false);
         val message = update.getMessage().getText();
         for (Contact contact : contacts) {
-            restService.sendMessage(contact.getChatId(), message);
+            restService.sendMessage(userService.getApiKey(user), contact.getChatId(), message);
         }
         stateService.setState(user, FREE);
         return Arrays.asList(SendMessageWrap.init()
@@ -87,7 +87,7 @@ public class MainMenuFolderMessage extends MainMenu {
     }
 
     private List<PartialBotApiMethod> freeLogic(User user, Update update) {
-        val folderList = (List<Folder>) folderRepository.findAll();
+        val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
         val btns = new HashMap<String, String>();
         if (folderList.size() == 0) {
             return errorMessage(update, "Папки с контактами отсутствуют. Отправка невозможна");

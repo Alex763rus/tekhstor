@@ -29,7 +29,7 @@ public class UserService {
     public User getUser(Update update) {
         val message = getMessage(update);
         val chatId = message.getChatId();
-        if(!whiteListUser.getWhiteListChatsID().contains(chatId)){
+        if (whiteListUser.getWhiteListChatsID().get(chatId) == null) {
             return null;
         }
         User user = stateService.getUser(chatId);
@@ -37,6 +37,10 @@ public class UserService {
             user = userRepository.findById(chatId).orElse(registeredUser(message));
         }
         return user;
+    }
+
+    public String getApiKey(User user) {
+        return whiteListUser.getWhiteListChatsID().get(user.getChatId());
     }
 
     private Message getMessage(Update update) {

@@ -6,5 +6,9 @@ import java.util.List;
 
 public interface ContactRepository extends CrudRepository<Contact, Long> {
 
-    public List<Contact> getContactByFolder(Folder folder);
+    public List<Contact> getContatsByFolderAndIsDelete(Folder folder, boolean isDelete);
+
+    public List<Contact> getContactsByIsDelete(boolean isDelete);
+    public Contact getContactByIsDeleteAndUsernameIs(boolean isDelete, String username);
+
 }

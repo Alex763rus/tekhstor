@@ -25,6 +25,9 @@ public class Contact {
     @Column(name = "title")
     private String title;
 
+    @Column(name = "is_delete")
+    private Boolean isDelete;
+
     @ManyToOne(optional = false, cascade = CascadeType.REFRESH)
     @JoinColumn(name = "folderId")
     private Folder folder;

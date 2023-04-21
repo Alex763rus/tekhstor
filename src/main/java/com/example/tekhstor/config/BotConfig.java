@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import java.io.File;
-import java.io.InputStreamReader;
 
 @Configuration
 @Data
@@ -26,9 +25,6 @@ public class BotConfig {
 
     @Value("${bot.token}")
     String botToken;
-
-    @Value("${sim.api.key}")
-    String simApiKey;
 
     @SneakyThrows
     @Bean

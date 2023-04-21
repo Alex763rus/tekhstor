@@ -15,7 +15,6 @@ import java.util.Map;
 @Service
 public class ButtonService {
 
-
     public InlineKeyboardMarkup createVerticalMenu(Map<String, String> menuDescription) {
         val inlineKeyboardMarkup = new InlineKeyboardMarkup();
         val rows = new ArrayList<List<InlineKeyboardButton>>();
@@ -28,7 +27,6 @@ public class ButtonService {
             rowInline.add(btn);
             rows.add(rowInline);
         }
-
         inlineKeyboardMarkup.setKeyboard(rows);
         return inlineKeyboardMarkup;
     }
@@ -36,16 +34,14 @@ public class ButtonService {
     public InlineKeyboardMarkup createVerticalMenuState(Map<State, String> menuDescription) {
         val inlineKeyboardMarkup = new InlineKeyboardMarkup();
         val rows = new ArrayList<List<InlineKeyboardButton>>();
-
         for (Map.Entry entry : menuDescription.entrySet()) {
-            List<InlineKeyboardButton> rowInline = new ArrayList<>();
+            val rowInline = new ArrayList<InlineKeyboardButton>();
             val btn = new InlineKeyboardButton();
             btn.setText(entry.getValue().toString());
             btn.setCallbackData(entry.getKey().toString());
             rowInline.add(btn);
             rows.add(rowInline);
         }
-
         inlineKeyboardMarkup.setKeyboard(rows);
         return inlineKeyboardMarkup;
     }
