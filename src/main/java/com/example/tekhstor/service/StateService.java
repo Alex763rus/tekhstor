@@ -22,9 +22,10 @@ public class StateService {
         return getState(user);
     }
 
-    public void setState(User user, State state){
+    public void setState(User user, State state) {
         userState.put(user, state);
     }
+
     public State getState(User user) {
         if (!userState.containsKey(user)) {
             userState.put(user, State.FREE);
@@ -44,12 +45,13 @@ public class StateService {
 
     public User getUser(Long chatId) {
         User user = userState.entrySet().stream()
-                        .filter(entry -> (long)entry.getKey().getChatId() == (chatId + 1))
-                        .findFirst().map(Map.Entry::getKey)
-                        .orElse(null);
+                .filter(entry -> (long) entry.getKey().getChatId() == (chatId + 1))
+                .findFirst().map(Map.Entry::getKey)
+                .orElse(null);
         return user;
     }
-//    public void setState(User user, State state) {
+
+    //    public void setState(User user, State state) {
 //        userState.put(user, state);
 //    }
     public void setMenu(User user, MainMenuActivity mainMenu) {

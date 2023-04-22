@@ -5,6 +5,7 @@ import com.example.tekhstor.model.jpa.*;
 import com.example.tekhstor.model.wpapper.DeleteMessageWrap;
 import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
+import com.example.tekhstor.service.ExcelService;
 import com.example.tekhstor.service.RestService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -12,8 +13,13 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 import static com.example.tekhstor.constant.Constant.NEW_LINE;
@@ -116,6 +122,7 @@ public class MainMenuContact extends MainMenu {
         btns.put(CONTACT_SHOW, "Показать контакты");
         btns.put(CONTACT_ADD, "Добавить контакт");
         btns.put(CONTACT_DELETE, "Удалить контакт");
+        btns.put(CONTACT_TO_EXCEL, "Выгрузить контакты");
         stateService.setState(user, CONTACT_MAIN);
 
         return Arrays.asList(
@@ -140,7 +147,37 @@ public class MainMenuContact extends MainMenu {
         if (callBackData.equals(String.valueOf(CONTACT_DELETE))) {
             return contactDelete(user, update);
         }
+        if (callBackData.equals(String.valueOf(CONTACT_TO_EXCEL))) {
+            return contactToExcel(user, update);
+        }
         return errorMessageDefault(update);
+    }
+
+    @Autowired
+    private ExcelService excelService;
+
+    private List<PartialBotApiMethod> contactToExcel(User user, Update update) {
+        val contaList = contactRepository.getContactsByIsDelete(false);
+        List<List<String>> excelData = new ArrayList<>();
+        excelData.add(Arrays.asList("№","Contact ID:", "Folder:", "ChatId:", "Username:", "Title:"));
+        for (int i = 0; i < contaList.size(); ++i) {
+            val contact = contaList.get(i);
+            excelData.add(
+                    Arrays.asList(
+                            String.valueOf(i + 1)
+                            , String.valueOf(contact.getContactId())
+                            , contact.getFolder().getName()
+                            , contact.getChatId()
+                            , contact.getUsername()
+                            , contact.getTitle()
+                    )
+            );
+        }
+        SendDocument sendDocument = new SendDocument();
+        sendDocument.setDocument(excelService.createExcelDocument("Склад", excelData));
+        sendDocument.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
+        stateService.setState(user, State.FREE);
+        return Arrays.asList(sendDocument);
     }
 
     private List<PartialBotApiMethod> contactDelete(User user, Update update) {
@@ -198,7 +235,7 @@ public class MainMenuContact extends MainMenu {
                 contactRepository.save(contact);
                 ++counterSuccessfullySaved;
             } catch (Exception ex) {
-                val message = "Ошибка! Некорректный userName контакта:" + username +". Контакт не сохранен!";
+                val message = "Ошибка! Некорректный userName контакта:" + username + ". Контакт не сохранен!";
                 log.error(message);
                 answer.add(errorMessage(update, message).get(0));
                 ++counterFaledSaved;
@@ -226,7 +263,7 @@ public class MainMenuContact extends MainMenu {
         return Arrays.asList(EditMessageTextWrap.init()
                 .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
                 .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
-                .setText("Введите username контакта:")
+                .setText("Введите username одного или нескольких контактов через запятую, например: @test1,@test2")
                 .build().createEditMessageText());
     }
 

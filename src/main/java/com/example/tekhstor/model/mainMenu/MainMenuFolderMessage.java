@@ -11,10 +11,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.example.tekhstor.constant.Constant.NEW_LINE;
 import static com.example.tekhstor.enums.State.*;
@@ -65,11 +62,13 @@ public class MainMenuFolderMessage extends MainMenu {
         for (Contact contact : contacts) {
             restService.sendMessage(userService.getApiKey(user), contact.getChatId(), message);
         }
-        stateService.setState(user, FREE);
-        return Arrays.asList(SendMessageWrap.init()
+        val answer = new ArrayList<PartialBotApiMethod>();
+        answer.add(SendMessageWrap.init()
                 .setChatIdLong(update.getMessage().getChatId())
                 .setText("Сообщения успешно отправлены:" + contacts.size())
                 .build().createSendMessage());
+        answer.add(freeLogic(user, update).get(0));
+        return answer;
     }
 
     private List<PartialBotApiMethod> waitFolderLogic(User user, Update update) {
