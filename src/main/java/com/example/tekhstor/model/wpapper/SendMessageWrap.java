@@ -6,6 +6,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import lombok.val;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
+import static com.example.tekhstor.constant.Constant.PARSE_MODE;
+
 @Getter
 @SuperBuilder(setterPrefix = "set", builderMethodName = "init", toBuilder = true)
 public class SendMessageWrap {
@@ -21,6 +23,7 @@ public class SendMessageWrap {
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
         sendMessage.setReplyMarkup(inlineKeyboardMarkup);
+        sendMessage.setParseMode(PARSE_MODE);
         return sendMessage;
     }
 }

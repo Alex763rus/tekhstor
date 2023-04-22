@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.example.tekhstor.constant.Constant.NEW_LINE;
 import static com.example.tekhstor.enums.State.*;
@@ -30,13 +31,6 @@ import static com.example.tekhstor.enums.State.*;
 public class MainMenuContact extends MainMenu {
     final String MENU_NAME = "/contact";
 
-    @Autowired
-    private ContactRepository contactRepository;
-    @Autowired
-    private FolderRepository folderRepository;
-
-    @Autowired
-    private RestService restService;
     private Map<User, Folder> folderTmp = new HashMap();
 
     private final String CONTACT_ADD_TEXT = "Режим добавления нового контакта.\nВыберите папку";
@@ -73,12 +67,16 @@ public class MainMenuContact extends MainMenu {
     }
 
     private List<PartialBotApiMethod> deleteContact(User user, Update update) {
-        val contact = contactRepository.getContactByIsDeleteAndUsernameIs(false, update.getMessage().getText());
-        contact.setIsDelete(true);
-        contactRepository.save(contact);
+        val contacts = contactRepository.getContactByIsDeleteAndUsernameIs(false, update.getMessage().getText());
+        for (Contact contact : contacts) {
+            if (contact.getFolder().equals(folderTmp.get(user))) {
+                contact.setIsDelete(true);
+                contactRepository.save(contact);
+            }
+        }
         return Arrays.asList(SendMessageWrap.init()
                 .setChatIdLong(update.getMessage().getChatId())
-                .setText("Контакт успешно удален")
+                .setText("Контакты успешно удалены:" + contacts.size())
                 .build().createSendMessage());
     }
 
@@ -118,7 +116,7 @@ public class MainMenuContact extends MainMenu {
     }
 
     private List<PartialBotApiMethod> freeLogic(User user, Update update) {
-        val btns = new HashMap<State, String>();
+        val btns = new LinkedHashMap<State, String>();
         btns.put(CONTACT_SHOW, "Показать контакты");
         btns.put(CONTACT_ADD, "Добавить контакт");
         btns.put(CONTACT_DELETE, "Удалить контакт");
@@ -153,13 +151,10 @@ public class MainMenuContact extends MainMenu {
         return errorMessageDefault(update);
     }
 
-    @Autowired
-    private ExcelService excelService;
-
     private List<PartialBotApiMethod> contactToExcel(User user, Update update) {
         val contaList = contactRepository.getContactsByIsDelete(false);
         List<List<String>> excelData = new ArrayList<>();
-        excelData.add(Arrays.asList("№","Contact ID:", "Folder:", "ChatId:", "Username:", "Title:"));
+        excelData.add(Arrays.asList("№", "Contact ID:", "Folder:", "ChatId:", "Username:", "Title:"));
         for (int i = 0; i < contaList.size(); ++i) {
             val contact = contaList.get(i);
             excelData.add(
@@ -181,7 +176,7 @@ public class MainMenuContact extends MainMenu {
     }
 
     private List<PartialBotApiMethod> contactDelete(User user, Update update) {
-        val btns = new HashMap<String, String>();
+        val btns = new LinkedHashMap<String, String>();
         val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
         val chatId = update.getCallbackQuery().getMessage().getChatId();
         val deleteMessage = DeleteMessageWrap.init()
@@ -226,7 +221,7 @@ public class MainMenuContact extends MainMenu {
             try {
                 val contact = new Contact();
                 contact.setFolder(folder);
-                contact.setUsername(username);
+                contact.setUsername(username.trim());
                 contact.setIsDelete(false);
                 val jsonData = restService.getChatInfo(userService.getApiKey(user), username);
                 JSONObject jsonObject = new JSONObject(jsonData);
@@ -268,7 +263,7 @@ public class MainMenuContact extends MainMenu {
     }
 
     private List<PartialBotApiMethod> contactAdd(User user, Update update) {
-        val btns = new HashMap<String, String>();
+        val btns = new LinkedHashMap<String, String>();
         val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
         val messageText = CONTACT_ADD_TEXT + (folderList.size() == 0 ? " отсутствуют\n" : ":\n");
         for (int i = 0; i < folderList.size(); ++i) {
@@ -292,18 +287,13 @@ public class MainMenuContact extends MainMenu {
         val contactList = (List<Contact>) contactRepository.getContactsByIsDelete(false);
         val messageText = new StringBuilder("Контакты");
         messageText.append(contactList.size() == 0 ? " отсутствуют\n" : ":\n");
-        //TODO contactList.stream().sorted(new ContactComparator()).toList();
-        // contactList.stream().flatMap(e -> )
-        //.sorted(Comparator.comparing(msg -> msg.getId()))
-        for (int i = 0; i < contactList.size(); ++i) {
-            val contact = contactList.get(i);
-            messageText.append(i + 1).append(") ")
-                    .append(contact.getFolder().getName())
-                    .append(" : ").append(contact.getChatId())
-                    .append(" - ").append(contact.getUsername())
-                    .append(" - ").append(contact.getTitle())
-                    .append(NEW_LINE)
-            ;
+        val folderContacts = contactList.stream().collect(Collectors.groupingBy(Contact::getFolder));
+        for (Map.Entry<Folder, List<Contact>> folderContact : folderContacts.entrySet()) {
+            messageText.append("*").append(folderContact.getKey().getName()).append("*").append(NEW_LINE);
+            for (Contact contact : folderContact.getValue()) {
+                messageText.append(contact.getUsername()).append(NEW_LINE);
+            }
+            messageText.append(NEW_LINE);
         }
         stateService.setState(user, State.FREE);
         return Arrays.asList(

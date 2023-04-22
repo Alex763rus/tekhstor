@@ -21,15 +21,6 @@ import static com.example.tekhstor.enums.State.*;
 public class MainMenuFolderMessage extends MainMenu {
     final String MENU_NAME = "/folder_message";
 
-    @Autowired
-    private FolderRepository folderRepository;
-
-    @Autowired
-    private ContactRepository contactRepository;
-
-    @Autowired
-    private RestService restService;
-
     private Map<User, Folder> folderTmp = new HashMap();
 
     @Override
@@ -87,7 +78,7 @@ public class MainMenuFolderMessage extends MainMenu {
 
     private List<PartialBotApiMethod> freeLogic(User user, Update update) {
         val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
-        val btns = new HashMap<String, String>();
+        val btns = new LinkedHashMap<String, String>();
         if (folderList.size() == 0) {
             return errorMessage(update, "Папки с контактами отсутствуют. Отправка невозможна");
         }

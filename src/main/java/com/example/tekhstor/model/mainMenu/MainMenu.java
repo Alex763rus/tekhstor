@@ -1,7 +1,11 @@
 package com.example.tekhstor.model.mainMenu;
 
+import com.example.tekhstor.model.jpa.ContactRepository;
+import com.example.tekhstor.model.jpa.FolderRepository;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
 import com.example.tekhstor.service.ButtonService;
+import com.example.tekhstor.service.ExcelService;
+import com.example.tekhstor.service.RestService;
 import com.example.tekhstor.service.StateService;
 import com.example.tekhstor.service.database.UserService;
 import jakarta.persistence.MappedSuperclass;
@@ -23,6 +27,17 @@ public abstract class MainMenu implements MainMenuActivity {
 
     @Autowired
     protected ButtonService buttonService;
+
+    @Autowired
+    protected ContactRepository contactRepository;
+    @Autowired
+    protected FolderRepository folderRepository;
+
+    @Autowired
+    protected ExcelService excelService;
+
+    @Autowired
+    protected RestService restService;
 
     private static final String DEFAULT_TEXT_ERROR = "Ошибка! Команда не найдена";
 

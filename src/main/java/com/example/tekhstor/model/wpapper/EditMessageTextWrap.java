@@ -10,6 +10,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import java.util.List;
 
+import static com.example.tekhstor.constant.Constant.PARSE_MODE;
+
 @Getter
 @SuperBuilder(setterPrefix = "set", builderMethodName = "init", toBuilder = true)
 public class EditMessageTextWrap {
@@ -26,6 +28,7 @@ public class EditMessageTextWrap {
         editMessageText.setChatId(chatId);
         editMessageText.setMessageId(messageId);
         editMessageText.setText(text);
+        editMessageText.setParseMode(PARSE_MODE);
         return editMessageText;
     }
 }

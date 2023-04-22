@@ -14,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import static com.example.tekhstor.enums.State.*;
@@ -22,9 +23,6 @@ import static com.example.tekhstor.enums.State.*;
 @Slf4j
 public class MainMenuFolder extends MainMenu {
     final String MENU_NAME = "/folder";
-
-    @Autowired
-    private FolderRepository folderRepository;
 
     private final String FOLDER_ADD_TEXT = "Режим добавления новой папки.\nВведите название новой папки:";
     private final String FOLDER_DELETE_TEXT = "Режим удаления папки. Укажите папку:";
@@ -54,52 +52,9 @@ public class MainMenuFolder extends MainMenu {
         }
         return errorMessageDefault(update);
     }
-    @Autowired
-    private ContactRepository contactRepository;
-    private List<PartialBotApiMethod> folderDeleteWaitNameLogic(User user, Update update) {
-        if (!update.hasCallbackQuery()) {
-            return errorMessageDefault(update);
-        }
-        val folder = folderRepository.findById(Long.parseLong(update.getCallbackQuery().getData())).get();
-        List<Contact> contacts = contactRepository.getContatsByFolderAndIsDelete(folder, false);
-        for (Contact contact:contacts) {
-            contact.setIsDelete(true);
-            contactRepository.save(contact);
-        }
-        folder.setIsDelete(true);
-        folderRepository.save(folder);
-
-        stateService.setState(user, FREE);
-        return Arrays.asList(EditMessageTextWrap.init()
-                .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
-                .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
-                .setText("Папка с контактами успешно удалена.")
-                .build().createEditMessageText());
-    }
-
-    private List<PartialBotApiMethod> folderDelete(User user, Update update) {
-        val btns = new HashMap<String, String>();
-        val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
-        val messageText = FOLDER_DELETE_TEXT + (folderList.size() == 0 ? " отсутствуют\n" : ":\n");
-        for (int i = 0; i < folderList.size(); ++i) {
-            btns.put(String.valueOf(folderList.get(i).getFolderId()), folderList.get(i).getName());
-        }
-        val chatId = update.getCallbackQuery().getMessage().getChatId();
-        val deleteMessage = DeleteMessageWrap.init()
-                .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
-                .setChatIdLong(chatId)
-                .build().createDeleteMessage();
-        val chooseContact = SendMessageWrap.init()
-                .setChatIdLong(chatId)
-                .setInlineKeyboardMarkup(buttonService.createVerticalMenu(btns))
-                .setText(messageText)
-                .build().createSendMessage();
-        stateService.setState(user, FOLDER_DELETE_WAIT_NAME);
-        return Arrays.asList(deleteMessage, chooseContact);
-    }
 
     private List<PartialBotApiMethod> freeLogic(User user, Update update) {
-        val btns = new HashMap<State, String>();
+        val btns = new LinkedHashMap<State, String>();
         btns.put(FOLDER_SHOW, "Показать папки");
         btns.put(FOLDER_ADD, "Добавить папку");
         btns.put(FOLDER_DELETE, "Удалить папку");
@@ -128,6 +83,46 @@ public class MainMenuFolder extends MainMenu {
             return folderDelete(user, update);
         }
         return errorMessageDefault(update);
+    }
+    private List<PartialBotApiMethod> folderDeleteWaitNameLogic(User user, Update update) {
+        if (!update.hasCallbackQuery()) {
+            return errorMessageDefault(update);
+        }
+        val folder = folderRepository.findById(Long.parseLong(update.getCallbackQuery().getData())).get();
+        List<Contact> contacts = contactRepository.getContatsByFolderAndIsDelete(folder, false);
+        for (Contact contact : contacts) {
+            contact.setIsDelete(true);
+            contactRepository.save(contact);
+        }
+        folder.setIsDelete(true);
+        folderRepository.save(folder);
+        stateService.setState(user, FREE);
+        return Arrays.asList(EditMessageTextWrap.init()
+                .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
+                .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
+                .setText("Папка с контактами успешно удалена.")
+                .build().createEditMessageText());
+    }
+
+    private List<PartialBotApiMethod> folderDelete(User user, Update update) {
+        val btns = new LinkedHashMap<String, String>();
+        val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
+        val messageText = FOLDER_DELETE_TEXT + (folderList.size() == 0 ? " отсутствуют\n" : ":\n");
+        for (int i = 0; i < folderList.size(); ++i) {
+            btns.put(String.valueOf(folderList.get(i).getFolderId()), folderList.get(i).getName());
+        }
+        val chatId = update.getCallbackQuery().getMessage().getChatId();
+        val deleteMessage = DeleteMessageWrap.init()
+                .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
+                .setChatIdLong(chatId)
+                .build().createDeleteMessage();
+        val chooseContact = SendMessageWrap.init()
+                .setChatIdLong(chatId)
+                .setInlineKeyboardMarkup(buttonService.createVerticalMenu(btns))
+                .setText(messageText)
+                .build().createSendMessage();
+        stateService.setState(user, FOLDER_DELETE_WAIT_NAME);
+        return Arrays.asList(deleteMessage, chooseContact);
     }
 
     private List<PartialBotApiMethod> folderShow(User user, Update update) {
