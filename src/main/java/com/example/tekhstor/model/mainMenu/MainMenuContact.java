@@ -35,7 +35,7 @@ public class MainMenuContact extends MainMenu {
 
     private final String CONTACT_ADD_TEXT = "Режим добавления нового контакта.\nВыберите папку";
     private final String CONTACT_DELETE_TEXT = "Режим удаления контакта.\nВыберите папку";
-    private final String CONTACT_ADD_OK_SAVE = "Новый контакт успешно сохранен";
+    private final String CONTACT_ADD_OK_SAVE = "Контакты успешно сохранены:";
 
     @Override
     public String getMenuName() {
@@ -71,9 +71,9 @@ public class MainMenuContact extends MainMenu {
         contact.setIsDelete(true);
         contactRepository.save(contact);
         return Arrays.asList(SendMessageWrap.init()
-                        .setChatIdLong(update.getMessage().getChatId())
-                        .setText("Контакт успешно удален")
-                        .build().createSendMessage());
+                .setChatIdLong(update.getMessage().getChatId())
+                .setText("Контакт успешно удален")
+                .build().createSendMessage());
     }
 
     private List<PartialBotApiMethod> contactDeleteWaitFolder(User user, Update update) {
@@ -175,29 +175,46 @@ public class MainMenuContact extends MainMenu {
             log.error(message);
             return errorMessage(update, message);
         }
-        val contact = new Contact();
-        contact.setUsername(update.getMessage().getText());
-        contact.setIsDelete(false);
-        contact.setFolder(folderTmp.get(user));
-        val jsonData = restService.getChatInfo(userService.getApiKey(user), messageText);
-
-        try {
-            JSONObject jsonObject = new JSONObject(jsonData);
-            contact.setTitle(jsonObject.getString("title"));
-            contact.setChatId(String.valueOf(jsonObject.getLong("id")));
-        } catch (Exception ex) {
-            val message = "Ошибка! Некорректный userName контакта.\nВведите username контакта:";
+        if (messageText.contains("https:") || messageText.contains("t.me:/")) {
+            val message = "Ошибка! Контакт не должен содержать https и t.me:" + messageText + ".\nВведите username контакта:";
             log.error(message);
             return errorMessage(update, message);
         }
-        contactRepository.save(contact);
+        val usernames = update.getMessage().getText().split(",");
+        val folder = folderTmp.get(user);
+        int counterSuccessfullySaved = 0;
+        int counterFaledSaved = 0;
+        val answer = new ArrayList<PartialBotApiMethod>();
+        for (String username : usernames) {
+            try {
+                val contact = new Contact();
+                contact.setFolder(folder);
+                contact.setUsername(username);
+                contact.setIsDelete(false);
+                val jsonData = restService.getChatInfo(userService.getApiKey(user), username);
+                JSONObject jsonObject = new JSONObject(jsonData);
+                contact.setTitle(jsonObject.getString("title"));
+                contact.setChatId(String.valueOf(jsonObject.getLong("id")));
+                contactRepository.save(contact);
+                ++counterSuccessfullySaved;
+            } catch (Exception ex) {
+                val message = "Ошибка! Некорректный userName контакта:" + username +". Контакт не сохранен!";
+                log.error(message);
+                answer.add(errorMessage(update, message).get(0));
+                ++counterFaledSaved;
+            }
+
+        }
         folderTmp.remove(user);
         stateService.setState(user, State.FREE);
-        return Arrays.asList(
-                SendMessageWrap.init()
-                        .setChatIdLong(update.getMessage().getChatId())
-                        .setText(CONTACT_ADD_OK_SAVE)
-                        .build().createSendMessage());
+
+        answer.add(SendMessageWrap.init()
+                .setChatIdLong(update.getMessage().getChatId())
+                .setText(CONTACT_ADD_OK_SAVE + counterSuccessfullySaved
+                        + NEW_LINE + "Не сохранено:" + counterFaledSaved
+                )
+                .build().createSendMessage());
+        return answer;
     }
 
     private List<PartialBotApiMethod> waitFolderNameLogic(User user, Update update) {
