@@ -7,8 +7,10 @@ import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
 import com.example.tekhstor.service.ExcelService;
 import com.example.tekhstor.service.RestService;
+import com.example.tekhstor.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.poi.util.StringUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -16,14 +18,11 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.example.tekhstor.constant.Constant.NEW_LINE;
+import static com.example.tekhstor.constant.StringConstant.NEW_LINE;
+import static com.example.tekhstor.constant.StringConstant.STAR;
 import static com.example.tekhstor.enums.State.*;
 
 @Component
@@ -33,8 +32,8 @@ public class MainMenuContact extends MainMenu {
 
     private Map<User, Folder> folderTmp = new HashMap();
 
-    private final String CONTACT_ADD_TEXT = "Режим добавления нового контакта.\nВыберите папку";
-    private final String CONTACT_DELETE_TEXT = "Режим удаления контакта.\nВыберите папку";
+    private final String CONTACT_ADD_TEXT = "Режим добавления нового контакта." + NEW_LINE + "Выберите папку";
+    private final String CONTACT_DELETE_TEXT = "Режим удаления контакта." + NEW_LINE + "Выберите папку";
     private final String CONTACT_ADD_OK_SAVE = "Контакты успешно сохранены:";
 
     @Override
@@ -67,16 +66,22 @@ public class MainMenuContact extends MainMenu {
     }
 
     private List<PartialBotApiMethod> deleteContact(User user, Update update) {
-        val contacts = contactRepository.getContactByIsDeleteAndUsernameIs(false, update.getMessage().getText());
+        val username = update.getMessage().getText();
+        val folder = folderTmp.get(user);
+        val contacts = contactRepository.getContactByIsDeleteAndUsernameIs(false, username);
         for (Contact contact : contacts) {
-            if (contact.getFolder().equals(folderTmp.get(user))) {
+            if (contact.getFolder().equals(folder)) {
                 contact.setIsDelete(true);
                 contactRepository.save(contact);
+                return Arrays.asList(SendMessageWrap.init()
+                        .setChatIdLong(update.getMessage().getChatId())
+                        .setText("Контакт успешно удален: " + StringUtils.getShield(contact.getUsername()))
+                        .build().createSendMessage());
             }
         }
         return Arrays.asList(SendMessageWrap.init()
                 .setChatIdLong(update.getMessage().getChatId())
-                .setText("Контакты успешно удалены:" + contacts.size())
+                .setText("Введенный контакт не найден: " + StringUtils.getShield(username) + " в папке: " + folder.getName())
                 .build().createSendMessage());
     }
 
@@ -84,35 +89,13 @@ public class MainMenuContact extends MainMenu {
         if (!update.hasCallbackQuery()) {
             return errorMessageDefault(update);
         }
-        val answer = new ArrayList<PartialBotApiMethod>();
-
-        val contactList = (List<Contact>) contactRepository.getContactsByIsDelete(false);
-        val messageText = new StringBuilder("Контакты");
-        messageText.append(contactList.size() == 0 ? " отсутствуют\n" : ":\n");
-        for (int i = 0; i < contactList.size(); ++i) {
-            val contact = contactList.get(i);
-            messageText.append(i + 1).append(") ")
-                    .append(contact.getFolder().getName())
-                    .append(" : ").append(contact.getChatId())
-                    .append(" - ").append(contact.getUsername())
-                    .append(" - ").append(contact.getTitle())
-                    .append(NEW_LINE)
-            ;
-        }
-        answer.add(EditMessageTextWrap.init()
-                .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
-                .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
-                .setText(messageText.toString())
-                .build().createEditMessageText());
-
         stateService.setState(user, CONTACT_DELETE_WAIT_USER_NAME);
         folderTmp.put(user, folderRepository.findById(Long.parseLong(update.getCallbackQuery().getData())).get());
-        answer.add(EditMessageTextWrap.init()
+        return Arrays.asList(EditMessageTextWrap.init()
                 .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
                 .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
                 .setText("Введите username контакта:")
                 .build().createEditMessageText());
-        return answer;
     }
 
     private List<PartialBotApiMethod> freeLogic(User user, Update update) {
@@ -154,7 +137,7 @@ public class MainMenuContact extends MainMenu {
     private List<PartialBotApiMethod> contactToExcel(User user, Update update) {
         val contaList = contactRepository.getContactsByIsDelete(false);
         List<List<String>> excelData = new ArrayList<>();
-        excelData.add(Arrays.asList("№", "Contact ID:", "Folder:", "ChatId:", "Username:", "Title:"));
+        excelData.add(Arrays.asList("№", "Contact ID:", "Folder:", "ChatId:", "Username:"));
         for (int i = 0; i < contaList.size(); ++i) {
             val contact = contaList.get(i);
             excelData.add(
@@ -164,7 +147,6 @@ public class MainMenuContact extends MainMenu {
                             , contact.getFolder().getName()
                             , contact.getChatId()
                             , contact.getUsername()
-                            , contact.getTitle()
                     )
             );
         }
@@ -187,7 +169,7 @@ public class MainMenuContact extends MainMenu {
             val errorAnswer = errorMessage(update, "Папки не найдены");
             return Arrays.asList(deleteMessage, errorAnswer.get(0));
         }
-        val messageText = CONTACT_DELETE_TEXT + (folderList.size() == 0 ? " отсутствуют\n" : ":\n");
+        val messageText = CONTACT_DELETE_TEXT + (folderList.size() == 0 ? " отсутствуют" : ":") + NEW_LINE;
         for (int i = 0; i < folderList.size(); ++i) {
             btns.put(String.valueOf(folderList.get(i).getFolderId()), folderList.get(i).getName());
         }
@@ -225,7 +207,6 @@ public class MainMenuContact extends MainMenu {
                 contact.setIsDelete(false);
                 val jsonData = restService.getChatInfo(userService.getApiKey(user), username);
                 JSONObject jsonObject = new JSONObject(jsonData);
-                contact.setTitle(jsonObject.getString("title"));
                 contact.setChatId(String.valueOf(jsonObject.getLong("id")));
                 contactRepository.save(contact);
                 ++counterSuccessfullySaved;
@@ -289,9 +270,9 @@ public class MainMenuContact extends MainMenu {
         messageText.append(contactList.size() == 0 ? " отсутствуют\n" : ":\n");
         val folderContacts = contactList.stream().collect(Collectors.groupingBy(Contact::getFolder));
         for (Map.Entry<Folder, List<Contact>> folderContact : folderContacts.entrySet()) {
-            messageText.append("*").append(folderContact.getKey().getName()).append("*").append(NEW_LINE);
+            messageText.append(STAR).append(folderContact.getKey().getName()).append(STAR).append(NEW_LINE);
             for (Contact contact : folderContact.getValue()) {
-                messageText.append(contact.getUsername()).append(NEW_LINE);
+                messageText.append(StringUtils.getShield(contact.getUsername())).append(NEW_LINE);
             }
             messageText.append(NEW_LINE);
         }

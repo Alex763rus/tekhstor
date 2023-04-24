@@ -29,7 +29,7 @@ public class MainMenuStart extends MainMenu {
         return Arrays.asList(
                 SendMessageWrap.init()
                         .setChatIdLong(user.getChatId())
-                        .setText(EmojiParser.parseToUnicode("Hello, " + user.getFirstName() + "!" + " :blush:"))
+                        .setText(EmojiParser.parseToUnicode("Привет, " + user.getFirstName() + "!" + " :blush:"))
                         .build().createSendMessage());
     }
 

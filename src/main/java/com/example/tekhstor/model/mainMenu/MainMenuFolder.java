@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import static com.example.tekhstor.constant.StringConstant.NEW_LINE;
+import static com.example.tekhstor.constant.StringConstant.SPACE;
 import static com.example.tekhstor.enums.State.*;
 
 @Component
@@ -24,8 +26,8 @@ import static com.example.tekhstor.enums.State.*;
 public class MainMenuFolder extends MainMenu {
     final String MENU_NAME = "/folder";
 
-    private final String FOLDER_ADD_TEXT = "Режим добавления новой папки.\nВведите название новой папки:";
-    private final String FOLDER_DELETE_TEXT = "Режим удаления папки. Укажите папку:";
+    private final String FOLDER_ADD_TEXT = "Режим добавления новой папки" + NEW_LINE + "Введите название новой папки:";
+    private final String FOLDER_DELETE_TEXT = "Режим удаления папки." + NEW_LINE + "Укажите папку:";
     private final String FOLDER_ADD_OK_SAVE = "Новая папка успешно сохранена";
 
     @Override
@@ -84,6 +86,7 @@ public class MainMenuFolder extends MainMenu {
         }
         return errorMessageDefault(update);
     }
+
     private List<PartialBotApiMethod> folderDeleteWaitNameLogic(User user, Update update) {
         if (!update.hasCallbackQuery()) {
             return errorMessageDefault(update);
@@ -100,14 +103,14 @@ public class MainMenuFolder extends MainMenu {
         return Arrays.asList(EditMessageTextWrap.init()
                 .setChatIdLong(update.getCallbackQuery().getMessage().getChatId())
                 .setMessageId(update.getCallbackQuery().getMessage().getMessageId())
-                .setText("Папка с контактами успешно удалена.")
+                .setText("Папка с контактами успешно удалена: " + folder.getName())
                 .build().createEditMessageText());
     }
 
     private List<PartialBotApiMethod> folderDelete(User user, Update update) {
         val btns = new LinkedHashMap<String, String>();
         val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
-        val messageText = FOLDER_DELETE_TEXT + (folderList.size() == 0 ? " отсутствуют\n" : ":\n");
+        val messageText = FOLDER_DELETE_TEXT + (folderList.size() == 0 ? "Папки отсутствуют" : "") + NEW_LINE;
         for (int i = 0; i < folderList.size(); ++i) {
             btns.put(String.valueOf(folderList.get(i).getFolderId()), folderList.get(i).getName());
         }
@@ -127,10 +130,10 @@ public class MainMenuFolder extends MainMenu {
 
     private List<PartialBotApiMethod> folderShow(User user, Update update) {
         val folderList = (List<Folder>) folderRepository.getFoldersByIsDelete(false);
-        val messageText = new StringBuilder("Доступные папки");
-        messageText.append(folderList.size() == 0 ? " отсутствуют\n" : ":\n");
+        val messageText = new StringBuilder();
+        messageText.append(folderList.size() == 0 ? "Папки отсутствуют" : "Доступные папки:").append(NEW_LINE);
         for (int i = 0; i < folderList.size(); ++i) {
-            messageText.append(i + 1).append(") ").append(folderList.get(i).getName()).append("\r\n");
+            messageText.append(i + 1).append(") ").append(folderList.get(i).getName()).append(NEW_LINE);
         }
         stateService.setState(user, State.FREE);
         return Arrays.asList(
@@ -160,7 +163,7 @@ public class MainMenuFolder extends MainMenu {
         return Arrays.asList(
                 SendMessageWrap.init()
                         .setChatIdLong(update.getMessage().getChatId())
-                        .setText(FOLDER_ADD_OK_SAVE)
+                        .setText(FOLDER_ADD_OK_SAVE + SPACE + folder.getName())
                         .build().createSendMessage());
     }
 }

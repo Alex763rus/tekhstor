@@ -3,17 +3,15 @@ package com.example.tekhstor.model.mainMenu;
 import com.example.tekhstor.model.jpa.*;
 import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
-import com.example.tekhstor.service.RestService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.*;
 
-import static com.example.tekhstor.constant.Constant.NEW_LINE;
+import static com.example.tekhstor.constant.StringConstant.NEW_LINE;
 import static com.example.tekhstor.enums.State.*;
 
 @Component
