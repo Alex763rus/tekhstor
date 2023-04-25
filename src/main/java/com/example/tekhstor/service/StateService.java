@@ -16,12 +16,6 @@ public class StateService {
     private Map<User, State> userState = new HashMap<>();
     private Map<User, MainMenuActivity> userMenu = new HashMap<>();
 
-    public State getState(Long chatId) {
-        User user = new User();
-        user.setChatId(chatId);
-        return getState(user);
-    }
-
     public void setState(User user, State state) {
         userState.put(user, state);
     }
@@ -33,27 +27,18 @@ public class StateService {
         return userState.get(user);
     }
 
-    public MainMenuActivity getMenu(Long chatId) {
-        User user = new User();
-        user.setChatId(chatId);
-        return getMenu(user);
-    }
-
     public MainMenuActivity getMenu(User user) {
         return userMenu.getOrDefault(user, null);
     }
 
     public User getUser(Long chatId) {
         User user = userState.entrySet().stream()
-                .filter(entry -> (long) entry.getKey().getChatId() == (chatId + 1))
+                .filter(entry -> (long) entry.getKey().getChatId() == (chatId))
                 .findFirst().map(Map.Entry::getKey)
                 .orElse(null);
         return user;
     }
 
-    //    public void setState(User user, State state) {
-//        userState.put(user, state);
-//    }
     public void setMenu(User user, MainMenuActivity mainMenu) {
         userMenu.put(user, mainMenu);
         userState.put(user, State.FREE);

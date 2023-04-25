@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
     <property name="HOME_LOG" value="/var/log/proj3ct.io/tekhstor/tekhstor.log"/>

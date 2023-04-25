@@ -34,7 +34,8 @@ public class UserService {
         }
         User user = stateService.getUser(chatId);
         if (user == null) {
-            user = userRepository.findById(chatId).orElse(registeredUser(message));
+            val users = userRepository.findById(chatId);
+            user = users.isPresent() ? users.get() : registeredUser(message);
         }
         return user;
     }
@@ -54,8 +55,8 @@ public class UserService {
     }
 
     private User registeredUser(Message message) {
-        var chatId = message.getChatId();
-        var chat = message.getChat();
+        val chatId = message.getChatId();
+        val chat = message.getChat();
 
         User user = new User();
 

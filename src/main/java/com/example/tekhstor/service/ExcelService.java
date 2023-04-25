@@ -17,15 +17,15 @@ import java.util.List;
 @Service
 public class ExcelService {
 
-    public InputFile createExcelDocument(String sheetName, List<List<String>> excelData){
+    public InputFile createExcelDocument(String sheetName, List<List<String>> excelData) {
         File tmpFile;
         try {
             tmpFile = Files.createTempFile("exel", ".xls").toFile();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        Workbook book = new HSSFWorkbook();
-        Sheet sheet = book.createSheet(sheetName);
+        val book = new HSSFWorkbook();
+        val sheet = book.createSheet(sheetName);
 
         for (int y = 0; y < excelData.size(); y++) {
             Row row = sheet.createRow(y);

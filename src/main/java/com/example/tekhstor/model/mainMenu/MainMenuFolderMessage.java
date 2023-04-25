@@ -3,6 +3,7 @@ package com.example.tekhstor.model.mainMenu;
 import com.example.tekhstor.model.jpa.*;
 import com.example.tekhstor.model.wpapper.EditMessageTextWrap;
 import com.example.tekhstor.model.wpapper.SendMessageWrap;
+import com.example.tekhstor.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import java.util.*;
 
 import static com.example.tekhstor.constant.StringConstant.NEW_LINE;
+import static com.example.tekhstor.constant.StringConstant.SPACE;
 import static com.example.tekhstor.enums.State.*;
 
 @Component
@@ -48,13 +50,28 @@ public class MainMenuFolderMessage extends MainMenu {
     private List<PartialBotApiMethod> sendMessages(User user, Update update) {
         val contacts = contactRepository.getContatsByFolderAndIsDelete(folderTmp.get(user), false);
         val message = update.getMessage().getText();
+        val messagesError = new StringBuilder();
+        int countSuccessSendMessages = 0;
         for (Contact contact : contacts) {
-            restService.sendMessage(userService.getApiKey(user), contact.getChatId(), message);
+            try {
+                restService.sendMessage(userService.getApiKey(user), contact.getChatId(), message);
+                ++countSuccessSendMessages;
+            } catch (Exception ex) {
+                val messageText = new StringBuilder();
+                messageText.append(contact.getFolder().getName()).append(SPACE)
+                        .append(StringUtils.getShield(contact.getUsername())).append(":")
+                        .append(ex.getMessage()).append(NEW_LINE);
+                messagesError.append(messageText);
+                log.error("Ошибка во время отправки сообщения:" + messageText);
+            }
         }
+        val answerText = new StringBuilder("Успешно отправлено сообщений: ");
+        answerText.append(countSuccessSendMessages).append(NEW_LINE);
+        answerText.append(messagesError);
         val answer = new ArrayList<PartialBotApiMethod>();
         answer.add(SendMessageWrap.init()
                 .setChatIdLong(update.getMessage().getChatId())
-                .setText("Сообщения успешно отправлены:" + contacts.size())
+                .setText(answerText.toString())
                 .build().createSendMessage());
         answer.add(freeLogic(user, update).get(0));
         return answer;

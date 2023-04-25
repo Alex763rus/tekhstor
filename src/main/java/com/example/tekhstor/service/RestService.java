@@ -5,6 +5,7 @@ import com.example.tekhstor.api.SendTgMessage;
 import com.example.tekhstor.api.Text;
 import com.example.tekhstor.config.BotConfig;
 import com.example.tekhstor.model.WhiteListUser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -29,31 +30,27 @@ public class RestService {
     @Autowired
     SearchPublicChats searchPublicChats;
 
-    public String getChatInfo(String apiKey,String userName) {
+    public String getChatInfo(String apiKey, String userName) throws Exception {
         searchPublicChats.setUsername(userName);
         searchPublicChats.setApi_key(apiKey);
         return sendPostRequest(searchPublicChats);
     }
 
-    public String sendMessage(String apiKey, String chatId, String message) {
+    public String sendMessage(String apiKey, String chatId, String message) throws Exception {
         sendTgMessage.setChat_id(chatId);
         sendTgMessage.setApi_key(apiKey);
         text.setText(message);
         return sendPostRequest(sendTgMessage);
     }
-    private String sendPostRequest(Object obj) {
-        try {
-            val restTemplate = new RestTemplate();
-            val json = (new ObjectMapper().writeValueAsString(obj)).replace("\"type\"", "\"@type\"");
-            val headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            val httpEntity = new HttpEntity<>(json, headers);
 
-            val responseEntity = restTemplate.exchange(URL, HttpMethod.POST, httpEntity, String.class);
-            return responseEntity.getBody();
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        return null;
+    private String sendPostRequest(Object obj) throws JsonProcessingException {
+        String json = "";
+        val restTemplate = new RestTemplate();
+        json = (new ObjectMapper().writeValueAsString(obj)).replace("\"type\"", "\"@type\"");
+        val headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        val httpEntity = new HttpEntity<>(json, headers);
+        val responseEntity = restTemplate.exchange(URL, HttpMethod.POST, httpEntity, String.class);
+        return responseEntity.getBody();
     }
 }
